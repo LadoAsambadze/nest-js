@@ -9,10 +9,17 @@ async function bootstrap() {
 
     app.useGlobalPipes(new ValidationPipe());
     app.enableCors({
-        origin: 'MY_FRONTEND',
+        origin: [
+            'https://studio.apollographql.com',
+            'http://localhost:3000', // Add your frontend URL if needed
+            'http://localhost:4000', // Allow same origin
+        ],
         credentials: true,
     });
 
+    app.enableCors({
+        credentials: true,
+    });
     await app.listen(
         configService.getOrThrow<number>('APPLICATION_PORT') || 3001
     );

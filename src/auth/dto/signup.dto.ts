@@ -11,8 +11,11 @@ import {
     IsPhoneNumber,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { InputType, Field } from '@nestjs/graphql';
 
-export class RegisterRequest {
+@InputType()
+export class SignupRequest {
+    @Field(() => String)
     @IsString({ message: 'First name must be a string' })
     @IsNotEmpty({ message: 'First name is required' })
     @Transform(({ value }) => value?.trim())
@@ -24,6 +27,7 @@ export class RegisterRequest {
     @MaxLength(50, { message: 'First name cannot exceed 50 characters' })
     firstname: string;
 
+    @Field(() => String)
     @IsString({ message: 'Last name must be a string' })
     @IsNotEmpty({ message: 'Last name is required' })
     @Transform(({ value }) => value?.trim())
@@ -35,6 +39,7 @@ export class RegisterRequest {
     @MaxLength(50, { message: 'Last name cannot exceed 50 characters' })
     lastname: string;
 
+    @Field(() => String)
     @IsString({ message: 'Email must be a string' })
     @IsNotEmpty({ message: 'Email is required' })
     @Transform(({ value }) => value?.trim().toLowerCase())
@@ -42,6 +47,7 @@ export class RegisterRequest {
     @MaxLength(255, { message: 'Email cannot exceed 255 characters' })
     email: string;
 
+    @Field(() => String)
     @IsString({ message: 'Password must be a string' })
     @IsNotEmpty({ message: 'Password is required' })
     @MinLength(8, { message: 'Password must be at least 8 characters long' })
@@ -61,10 +67,12 @@ export class RegisterRequest {
     )
     password: string;
 
+    @Field(() => String, { nullable: true })
     @IsOptional()
     @IsUrl({}, { message: 'Avatar must be a valid URL' })
     avatar?: string;
 
+    @Field(() => String, { nullable: true })
     @IsOptional()
     @IsPhoneNumber(undefined, { message: 'Phone must be a valid phone number' })
     phone?: string;

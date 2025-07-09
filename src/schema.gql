@@ -1,0 +1,60 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type User {
+  id: ID!
+  firstname: String!
+  lastname: String!
+  email: String!
+  role: String!
+  isVerified: Boolean!
+  isActive: Boolean!
+  avatar: String
+  phone: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  lastLogin: DateTime
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type AuthTokens {
+  accessToken: String!
+  refreshToken: String!
+}
+
+type AuthResponse {
+  user: User!
+  tokens: AuthTokens!
+}
+
+type Query {
+  hello: String!
+}
+
+type Mutation {
+  signup(signupInput: SignupRequest!): AuthResponse!
+  google(googleLoginInput: GoogleLoginRequest!): AuthResponse!
+}
+
+input SignupRequest {
+  firstname: String!
+  lastname: String!
+  email: String!
+  password: String!
+  avatar: String
+  phone: String
+}
+
+input GoogleLoginRequest {
+  firstname: String!
+  lastname: String!
+  email: String!
+  avatar: String
+  phone: String
+  googleId: String!
+}

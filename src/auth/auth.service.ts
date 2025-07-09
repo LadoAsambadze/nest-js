@@ -2,10 +2,11 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { RegisterRequest } from './dto/register.dto';
 import { hash } from 'argon2';
-import { AuthResponse, AuthTokens } from './types/auth.types';
+import { AuthTokens } from './types/auth-tokens.type';
 import { calculateExpiryDate } from 'src/common/utils/expiry-date.util';
+import { AuthResponse } from './types/auth-response.type';
+import { SignupRequest } from './dto/signup.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +16,7 @@ export class AuthService {
         private config: ConfigService
     ) {}
 
-    async register(dto: RegisterRequest): Promise<AuthResponse> {
+    async signup(dto: SignupRequest): Promise<AuthResponse> {
         const { firstname, lastname, email, avatar, password, phone } = dto;
 
         const existingUser = await this.prisma.user.findUnique({
@@ -51,7 +52,7 @@ export class AuthService {
         return { user: userWithoutPassword, tokens };
     }
 
-    async registerOrLoginWithGoogle(googleUser: {
+    async signupOrLoginWithGoogle(googleUser: {
         email: string;
         firstname: string;
         lastname: string;
