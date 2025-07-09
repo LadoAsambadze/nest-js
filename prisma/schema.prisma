@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+ 
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  firstname     String         @map("first_name")
+  lastname      String         @map("last_name")
+  email         String         @unique
+  password      String?
+  role          UserRole       @default(REGULAR)
+  method        AuthMethod     @default(CREDENTIALS)
+  isVerified    Boolean        @default(false) @map("is_verified")
+  isActive      Boolean        @default(true) @map("is_active")
+  avatar        String?         
+  phone         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  lastLogin     DateTime?      @map("last_login")
+  accounts      Account[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String   @id @default(uuid())
+  type              String
+  provider          String
+  providerAccountId String?  @map("provider_account_id")
+  refreshToken      String?  @map("refresh_token")
+  accessToken       String?  @map("access_token")
+  expiresAt         Int?     @map("expires_at")
+  tokenType         String?  @map("token_type")
+  scope             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  userId            String   @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  deviceId  String?  @map("device_id")
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  email     String
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime  @map("expires_at")
+  isUsed    Boolean   @default(false) @map("is_used")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("tokens")
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  email     String
+  ipAddress String   @map("ip_address")
+  userAgent String   @map("user_agent")
+  success   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("login_attempts")
+}
+
+enum UserRole {
+  REGULAR
+  ADMIN
+}
+
+enum AuthMethod {
+  CREDENTIALS
+  GOOGLE
+}
+
+enum TokenType {
+  VERIFICATION
+  RESET_PASSWORD
+  CHANGE_EMAIL
+}
