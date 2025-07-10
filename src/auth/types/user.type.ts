@@ -5,36 +5,36 @@ export class User {
     @Field(() => ID)
     id: string;
 
-    @Field()
+    @Field(() => String)
     firstname: string;
 
-    @Field()
+    @Field(() => String)
     lastname: string;
 
-    @Field()
+    @Field(() => String)
     email: string;
 
-    @Field()
+    @Field(() => String)
     role: string;
 
-    @Field()
+    @Field(() => Boolean)
     isVerified: boolean;
 
-    @Field()
+    @Field(() => Boolean)
     isActive: boolean;
 
-    @Field(() => String, { nullable: true })  
+    @Field(() => String, { nullable: true })
     avatar?: string | null;
 
-    @Field(() => String, { nullable: true })  
+    @Field(() => String, { nullable: true })
     phone?: string | null;
 
-    @Field()
+    @Field(() => Date)
     createdAt: Date;
 
-    @Field()
+    @Field(() => Date)
     updatedAt: Date;
 
-    @Field(() => Date, { nullable: true })  
+    @Field(() => Date, { nullable: true })
     lastLogin?: Date | null;
 }

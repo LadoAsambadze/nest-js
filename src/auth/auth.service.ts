@@ -1,12 +1,21 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { PrismaService } from 'src/prisma/prisma.service';
+import type { JwtService } from '@nestjs/jwt';
+import type { ConfigService } from '@nestjs/config';
+import type { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'argon2';
-import { AuthTokens } from './types/auth-tokens.type';
-import { calculateExpiryDate } from 'src/common/utils/expiry-date.util';
-import { AuthResponse } from './types/auth-response.type';
-import { SignupRequest } from './dto/signup.dto';
+import type { AuthTokens } from './types/auth-tokens.type';
+import { calculateExpiryDate } from '../common/utils/expiry-date.util';
+import type { AuthResponse } from './types/auth-response.type';
+import type { SignupRequest } from './dto/signup.dto';
+
+// ✅ Interface for Google user data from Passport.js
+interface GoogleUserData {
+    email: string;
+    firstname: string;
+    lastname: string;
+    avatar?: string;
+    googleId: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -16,6 +25,7 @@ export class AuthService {
         private config: ConfigService
     ) {}
 
+    // ✅ Credentials signup - uses GraphQL DTO
     async signup(dto: SignupRequest): Promise<AuthResponse> {
         const { firstname, lastname, email, avatar, password, phone } = dto;
 
@@ -46,19 +56,17 @@ export class AuthService {
             user.email,
             user.role
         );
+
         await this.saveRefreshToken(user.id, tokens.refreshToken);
 
         const { password: _, ...userWithoutPassword } = user;
         return { user: userWithoutPassword, tokens };
     }
 
-    async signupOrLoginWithGoogle(googleUser: {
-        email: string;
-        firstname: string;
-        lastname: string;
-        avatar?: string;
-        googleId: string;
-    }): Promise<AuthResponse> {
+    // ✅ Google OAuth - receives data from Passport.js (not GraphQL)
+    async signupOrLoginWithGoogle(
+        googleUser: GoogleUserData
+    ): Promise<AuthResponse> {
         const { email, firstname, lastname, avatar, googleId } = googleUser;
 
         let user = await this.prisma.user.findUnique({
@@ -66,23 +74,26 @@ export class AuthService {
         });
 
         if (user) {
+            // Existing user - just update last login
             user = await this.prisma.user.update({
                 where: { id: user.id },
                 data: { lastLogin: new Date() },
             });
         } else {
+            // New user - create account
             user = await this.prisma.user.create({
                 data: {
                     firstname,
                     lastname,
                     email,
                     avatar,
-                    password: null,
+                    password: null, // No password for OAuth users
                     method: 'GOOGLE',
-                    isVerified: true,
+                    isVerified: true, // Google accounts are pre-verified
                 },
             });
 
+            // Create OAuth account record
             await this.prisma.account.create({
                 data: {
                     userId: user.id,
@@ -98,6 +109,7 @@ export class AuthService {
             user.email,
             user.role
         );
+
         await this.saveRefreshToken(user.id, tokens.refreshToken);
 
         const { password: _, ...userWithoutPassword } = user;

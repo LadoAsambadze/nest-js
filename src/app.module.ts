@@ -8,7 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 
 import { AuthModule } from './auth/auth.module';
-import { AuthResolver } from './auth/auth.controller';
+import { AuthResolver } from './auth/auth.resolver';
 
 @Module({
     imports: [

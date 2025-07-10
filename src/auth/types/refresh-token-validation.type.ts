@@ -2,12 +2,12 @@ import { ObjectType, Field } from '@nestjs/graphql';
 
 @ObjectType()
 export class RefreshTokenValidation {
-    @Field()
+    @Field(() => String)
     userId: string;
 
-    @Field()
+    @Field(() => String)
     email: string;
 
-    @Field()
+    @Field(() => String)
     role: string;
 }
