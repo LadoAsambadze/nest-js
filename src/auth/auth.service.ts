@@ -1,12 +1,12 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import type { JwtService } from '@nestjs/jwt';
-import type { ConfigService } from '@nestjs/config';
-import type { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 import { hash } from 'argon2';
-import type { AuthTokens } from './types/auth-tokens.type';
+import { AuthTokens } from './types/auth-tokens.type';
 import { calculateExpiryDate } from '../common/utils/expiry-date.util';
-import type { AuthResponse } from './types/auth-response.type';
-import type { SignupRequest } from './dto/signup.dto';
+import { AuthResponse } from './types/auth-response.type';
+import { SignupRequest } from './dto/signup.dto';
 
 // ✅ Interface for Google user data from Passport.js
 interface GoogleUserData {

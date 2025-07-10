@@ -37,24 +37,5 @@ type Query {
 }
 
 type Mutation {
-  signup(signupInput: SignupRequest!): AuthResponse!
-  google(googleLoginInput: GoogleLoginRequest!): AuthResponse!
-}
-
-input SignupRequest {
-  firstname: String!
-  lastname: String!
-  email: String!
-  password: String!
-  avatar: String
-  phone: String
-}
-
-input GoogleLoginRequest {
-  firstname: String!
-  lastname: String!
-  email: String!
-  avatar: String
-  phone: String
-  googleId: String!
+  signup: AuthResponse!
 }

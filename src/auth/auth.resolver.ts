@@ -1,8 +1,9 @@
 import { Mutation, Resolver } from '@nestjs/graphql';
 import { HttpCode, HttpStatus } from '@nestjs/common';
-import type { AuthService } from './auth.service';
-import type { SignupRequest } from './dto/signup.dto';
+
+import { SignupRequest } from './dto/signup.dto';
 import { AuthResponse } from './types/auth-response.type';
+import { AuthService } from './auth.service';
 
 @Resolver()
 export class AuthResolver {

@@ -1,7 +1,7 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import type { Response } from 'express';
-import type { AuthService } from './auth.service';
+import { Response } from 'express';
+import { AuthService } from './auth.service';
 
 interface GoogleRequest extends Request {
     user: {

@@ -1,46 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import {
-    Strategy,
-    type StrategyOptions,
-    type VerifyCallback,
-} from 'passport-google-oauth20';
-import type { ConfigService } from '@nestjs/config';
-
-export interface GoogleProfile {
-    id: string;
-    emails: { value: string; verified: boolean }[];
-    name: { givenName: string; familyName: string };
-    photos: { value: string }[];
-}
+import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { ConfigService } from '@nestjs/config';
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        private authService: AuthService
+    ) {
+        const clientID = configService.get('GOOGLE_CLIENT_ID');
+        const clientSecret = configService.get('GOOGLE_CLIENT_SECRET');
+        const callbackURL = configService.get('GOOGLE_CALLBACK_URL');
+
+        if (!clientID || !clientSecret || !callbackURL) {
+            throw new Error(
+                'Missing Google OAuth configuration. Please check your environment variables.'
+            );
+        }
+
         super({
-            clientID: configService.get<string>('GOOGLE_CLIENT_ID')!,
-            clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET')!,
-            callbackURL: configService.get<string>('GOOGLE_CALLBACK_URL')!,
+            clientID,
+            clientSecret,
+            callbackURL,
             scope: ['email', 'profile'],
-        } as StrategyOptions);
+        });
     }
 
-    // ✅ This method processes Google's response and creates the user object
     async validate(
         accessToken: string,
         refreshToken: string,
-        profile: GoogleProfile,
+        profile: any,
         done: VerifyCallback
-    ): Promise<void> {
-        const { id, emails, name, photos } = profile;
+    ): Promise<any> {
+        const { name, emails, photos, id } = profile;
 
-        // ✅ This object matches GoogleUserData interface in service
         const user = {
-            googleId: id,
             email: emails[0].value,
             firstname: name.givenName,
             lastname: name.familyName,
-            avatar: photos[0]?.value,
+            avatar: photos[0].value,
+            googleId: id,
         };
 
         done(null, user);
