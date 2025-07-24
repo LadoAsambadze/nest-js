@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthResolver } from './auth.resolver';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { AuthController } from './auth.controller';
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
             inject: [ConfigService],
         }),
     ],
+    controllers: [AuthController],
     providers: [AuthService, AuthResolver, GoogleStrategy],
     exports: [AuthService],
 })

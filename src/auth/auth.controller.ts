@@ -10,6 +10,8 @@ interface GoogleRequest extends Request {
         firstname: string;
         lastname: string;
         avatar?: string;
+        accessToken?: string;
+        refreshToken?: string;
     };
 }
 
@@ -19,25 +21,43 @@ export class AuthController {
 
     @Get('google')
     @UseGuards(AuthGuard('google'))
-    async googleAuth(@Req() req: GoogleRequest, @Res() res: Response) {
-        // Initiates Google OAuth flow
-        res.redirect('https://accounts.google.com/o/oauth2/auth');
-    }
+    async googleAuth() {}
 
     @Get('google/callback')
     @UseGuards(AuthGuard('google'))
     async googleAuthRedirect(@Req() req: GoogleRequest, @Res() res: Response) {
         try {
             const result = await this.authService.signupOrLoginWithGoogle(
-                req.user
+                req.user,
+                res // Pass response object
             );
-
-            // Redirect to frontend with tokens or success message
-            const redirectUrl = `${process.env.FRONTEND_URL}/auth/success?token=${result.tokens.accessToken}`;
+            // Only use accessToken now, refresh token is in httpOnly cookie
+            const redirectUrl = `${process.env.FRONTEND_URL}/auth/success?token=${result.accessToken}`;
             res.redirect(redirectUrl);
         } catch (error) {
-            const errorUrl = `${process.env.FRONTEND_URL}/auth/error?message=${error.message}`;
+            const errorMessage = encodeURIComponent(error.message);
+            const errorUrl = `${process.env.FRONTEND_URL}/auth/error?message=${errorMessage}`;
             res.redirect(errorUrl);
+        }
+    }
+
+    @Get('refresh')
+    async refreshTokens(@Req() req: any, @Res() res: Response) {
+        try {
+            const result = await this.authService.refreshTokens(req, res);
+            res.json(result);
+        } catch (error) {
+            res.status(401).json({ message: error.message });
+        }
+    }
+
+    @Get('logout')
+    async logout(@Req() req: any, @Res() res: Response) {
+        try {
+            const result = await this.authService.logout(req, res);
+            res.json(result);
+        } catch (error) {
+            res.status(400).json({ message: error.message });
         }
     }
 }

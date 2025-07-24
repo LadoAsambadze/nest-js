@@ -74,6 +74,5 @@ export class SignupRequest {
 
     @Field(() => String, { nullable: true })
     @IsOptional()
-    @IsPhoneNumber(undefined, { message: 'Phone must be a valid phone number' })
     phone?: string;
 }

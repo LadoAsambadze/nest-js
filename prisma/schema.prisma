@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
- 
 }
 
 datasource db {
@@ -18,7 +17,7 @@ model User {
   method        AuthMethod     @default(CREDENTIALS)
   isVerified    Boolean        @default(false) @map("is_verified")
   isActive      Boolean        @default(true) @map("is_active")
-  avatar        String?         
+  avatar        String?
   phone         String?
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
@@ -96,6 +95,7 @@ enum UserRole {
 enum AuthMethod {
   CREDENTIALS
   GOOGLE
+  BOTH
 }
 
 enum TokenType {

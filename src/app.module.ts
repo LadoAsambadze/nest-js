@@ -6,18 +6,18 @@ import { AppResolver } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
-
 import { AuthModule } from './auth/auth.module';
-import { AuthResolver } from './auth/auth.resolver';
 
 @Module({
     imports: [
         GraphQLModule.forRoot<ApolloDriverConfig>({
             driver: ApolloDriver,
             autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-            graphiql: true,
+            sortSchema: true,
+            playground: true,
             introspection: true,
-            playground: false,
+            context: ({ req, res }) => ({ req, res }),
+            // Remove cors configuration from here
         }),
         ConfigModule.forRoot({
             isGlobal: true,
@@ -25,7 +25,6 @@ import { AuthResolver } from './auth/auth.resolver';
         PrismaModule,
         AuthModule,
     ],
-
-    providers: [AppService, AppResolver, AuthResolver],
+    providers: [AppService, AppResolver],
 })
 export class AppModule {}

@@ -37,4 +37,7 @@ export class User {
 
     @Field(() => Date, { nullable: true })
     lastLogin?: Date | null;
+
+    @Field()
+    method: string;
 }
