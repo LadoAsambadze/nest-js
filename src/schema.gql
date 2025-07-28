@@ -21,9 +21,10 @@ type MessageOutput {
 }
 
 type Mutation {
+  cleanupTokens: MessageOutput!
   logout: MessageOutput!
-  refreshTokens: AccessTokenOutput!
-  signin(signin: SigninRequest!): AuthResponse!
+  refreshAccessToken: AccessTokenOutput!
+  signin(signinInput: SigninRequest!): AuthResponse!
   signup(signupInput: SignupRequest!): AuthResponse!
 }
 

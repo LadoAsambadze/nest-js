@@ -1,7 +1,7 @@
 import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService } from '../services/auth.service';
 
 interface GoogleRequest extends Request {
     user: {
@@ -42,12 +42,12 @@ export class AuthController {
     }
 
     @Get('refresh')
-    async refreshTokens(@Req() req: any, @Res() res: Response) {
+    async refreshTokens(@Req() request: any, @Res() response: Response) {
         try {
-            const result = await this.authService.refreshTokens(req, res);
-            res.json(result);
+            const result = await this.authService.refreshAccessToken(request, response);
+            response.json(result);
         } catch (error) {
-            res.status(401).json({ message: error.message });
+            response.status(401).json({ message: error.message });
         }
     }
 

@@ -17,7 +17,6 @@ import { AuthModule } from './auth/auth.module';
             playground: true,
             introspection: true,
             context: ({ req, res }) => ({ req, res }),
-            // Remove cors configuration from here
         }),
         ConfigModule.forRoot({
             isGlobal: true,
