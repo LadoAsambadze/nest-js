@@ -3,11 +3,13 @@ import {
     UnauthorizedException,
     BadRequestException,
     Injectable,
+    NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { hash, verify } from 'argon2';
 import { SignupRequest } from '../dto/signup.dto';
 import { GoogleUserData } from '../types/google-user.types';
+import { User } from '../types/user.type';
 
 @Injectable()
 export class UserAccountService {
@@ -144,6 +146,87 @@ export class UserAccountService {
         return await this.prisma.user.update({
             where: { id: user.id },
             data: { lastLogin: new Date() },
+        });
+    }
+
+    /**
+     * Find user by ID for authentication purposes
+     * Returns user data without sensitive information like password
+     */
+    async findById(userId: string): Promise<User> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                firstname: true,
+                lastname: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                isActive: true, // Make sure this field is included
+                avatar: true,
+                phone: true,
+                lastLogin: true,
+                createdAt: true,
+                updatedAt: true,
+                method: true,
+                // Explicitly exclude password
+                password: false,
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        return user as User;
+    }
+
+    /**
+     * Find user by email
+     * Returns user data without sensitive information like password
+     */
+    async findByEmail(email: string) {
+        return await this.prisma.user.findUnique({
+            where: { email },
+            select: {
+                id: true,
+                email: true,
+                firstname: true,
+                lastname: true,
+                role: true,
+                avatar: true,
+                phone: true,
+                method: true,
+                isVerified: true,
+                lastLogin: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+    }
+
+    /**
+     * Update user's last login timestamp
+     */
+    async updateLastLogin(userId: string) {
+        return await this.prisma.user.update({
+            where: { id: userId },
+            data: { lastLogin: new Date() },
+            select: {
+                id: true,
+                email: true,
+                firstname: true,
+                lastname: true,
+                role: true,
+                avatar: true,
+                phone: true,
+                method: true,
+                isVerified: true,
+                lastLogin: true,
+                createdAt: true,
+                updatedAt: true,
+            },
         });
     }
 }

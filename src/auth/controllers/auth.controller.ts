@@ -32,7 +32,8 @@ export class AuthController {
                 res // Pass response object
             );
             // Only use accessToken now, refresh token is in httpOnly cookie
-            const redirectUrl = `${process.env.FRONTEND_URL}/auth/success?token=${result.accessToken}`;
+            // const redirectUrl = `${process.env.FRONTEND_URL}/auth/success?token=${result.accessToken}`;
+            const redirectUrl = '123';
             res.redirect(redirectUrl);
         } catch (error) {
             const errorMessage = encodeURIComponent(error.message);

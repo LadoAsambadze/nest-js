@@ -159,9 +159,6 @@ export class TokenService {
         });
     }
 
-    /**
-     * Clean up expired and revoked tokens from the database
-     */
     async cleanupExpiredTokens(): Promise<{ deletedCount: number }> {
         try {
             const result = await this.prisma.session.deleteMany({
@@ -178,9 +175,16 @@ export class TokenService {
         }
     }
 
-    /**
-     * Get statistics about token usage
-     */
+    async verifyAccessToken(token: string) {
+        try {
+            return await this.jwt.verifyAsync(token, {
+                secret: this.config.get<string>('JWT_SECRET'),
+            });
+        } catch (error) {
+            throw new UnauthorizedException('Invalid access token');
+        }
+    }
+
     async getTokenStats(): Promise<{
         totalSessions: number;
         activeSessions: number;

@@ -2,10 +2,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-type AccessTokenOutput {
-  accessToken: String!
-}
-
 type AuthResponse {
   accessToken: String!
   user: User!
@@ -23,13 +19,19 @@ type MessageOutput {
 type Mutation {
   cleanupTokens: MessageOutput!
   logout: MessageOutput!
-  refreshAccessToken: AccessTokenOutput!
+  refreshToken: RefreshTokenResponse!
   signin(signinInput: SigninRequest!): AuthResponse!
   signup(signupInput: SignupRequest!): AuthResponse!
 }
 
 type Query {
   hello: String!
+  me: User!
+}
+
+type RefreshTokenResponse {
+  accessToken: String!
+  user: User!
 }
 
 input SigninRequest {

@@ -1,4 +1,4 @@
-import { Args, Mutation, Resolver, Context } from '@nestjs/graphql';
+import { Args, Mutation, Resolver, Context, Query } from '@nestjs/graphql';
 import {
     BadRequestException,
     HttpCode,
@@ -10,10 +10,13 @@ import { Request, Response } from 'express';
 import { SignupRequest } from './dto/signup.dto';
 import { SigninRequest } from './dto/signin.dto';
 import { AuthResponse } from './types/auth-response.type';
-import { AccessTokenOutput } from './dto/accesstoken-output.dto';
 import { MessageOutput } from './dto/message-output.dto';
 import { AuthService } from './services/auth.service';
 import { ScheduledTasksService } from './services/sheduled-tasks.service';
+import { User } from './types/user.type';
+import { CurrentUser } from './current-user.decorator';
+import { GqlAuthGuard } from './gql-authguard';
+import { RefreshTokenResponse } from './types/refresh-token-response.type';
 
 @Resolver()
 export class AuthResolver {
@@ -28,7 +31,8 @@ export class AuthResolver {
         @Args('signupInput') signupInput: SignupRequest,
         @Context() context: any
     ): Promise<AuthResponse> {
-        return this.authService.signup(signupInput, context.res);
+        const result = await this.authService.signup(signupInput, context.res);
+        return result;
     }
 
     @Mutation(() => AuthResponse, { name: 'signin' })
@@ -37,12 +41,13 @@ export class AuthResolver {
         @Args('signinInput') signinInput: SigninRequest,
         @Context() context: any
     ): Promise<AuthResponse> {
-        return this.authService.signin(signinInput, context.res);
+        const result = await this.authService.signin(signinInput, context.res);
+        return result;
     }
 
-    @Mutation(() => AccessTokenOutput, { name: 'refreshAccessToken' })
+    @Mutation(() => RefreshTokenResponse, { name: 'refreshToken' })
     @HttpCode(HttpStatus.OK)
-    async refreshAccessToken(@Context() context: any): Promise<AccessTokenOutput> {
+    async refreshToken(@Context() context: any): Promise<RefreshTokenResponse> {
         const req = context.req as Request | undefined;
         const res = context.res as Response | undefined;
 
@@ -56,8 +61,9 @@ export class AuthResolver {
             throw new BadRequestException('No cookies found in request');
         }
 
-        const { accessToken } = await this.authService.refreshAccessToken(req, res);
-        return { accessToken };
+        const result = await this.authService.refreshAccessToken(req, res);
+
+        return result;
     }
 
     @Mutation(() => MessageOutput, { name: 'logout' })
@@ -78,11 +84,7 @@ export class AuthResolver {
         return result;
     }
 
-    /**
-     * Admin-only endpoint for manual token cleanup
-     */
     @Mutation(() => MessageOutput, { name: 'cleanupTokens' })
-    // @UseGuards(AdminGuard) // Ensure only admins can call this
     async cleanupTokens(): Promise<MessageOutput> {
         const result = await this.scheduledTasksService.manualTokenCleanup();
 
@@ -93,5 +95,11 @@ export class AuthResolver {
         } else {
             throw new Error(`Token cleanup failed: ${result.error}`);
         }
+    }
+
+    @Query(() => User, { name: 'me' })
+    @UseGuards(GqlAuthGuard)
+    async me(@CurrentUser() user: User): Promise<User> {
+        return user;
     }
 }

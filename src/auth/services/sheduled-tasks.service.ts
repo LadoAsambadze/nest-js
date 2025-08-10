@@ -12,12 +12,9 @@ export class ScheduledTasksService {
         private readonly configService: ConfigService
     ) {}
 
-    /**
-     * Clean up expired tokens daily at midnight
-     */
     @Cron('0 0 * * *', {
         name: 'cleanupExpiredTokens',
-        timeZone: 'UTC', // or your preferred timezone
+        timeZone: 'UTC',
     })
     async handleTokenCleanup() {
         const isEnabled = this.configService.get<boolean>('TOKEN_CLEANUP_ENABLED', true);
@@ -36,9 +33,6 @@ export class ScheduledTasksService {
         }
     }
 
-    /**
-     * Log token statistics weekly (every Sunday at 1 AM)
-     */
     @Cron('0 1 * * 0', {
         name: 'logTokenStats',
         timeZone: 'UTC',
@@ -59,9 +53,6 @@ export class ScheduledTasksService {
         }
     }
 
-    /**
-     * Manual cleanup method (can be called from admin endpoints)
-     */
     async manualTokenCleanup(): Promise<{
         success: boolean;
         deletedCount: number;

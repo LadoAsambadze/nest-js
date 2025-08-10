@@ -7,6 +7,7 @@ import { AuthResponse } from '../types/auth-response.type';
 import { CookieService } from './cookie.service';
 import { UserAccountService } from './user-account.service';
 import { TokenService } from './token.service';
+import { RefreshTokenResponse } from '../types/refresh-token-response.type';
 
 @Injectable()
 export class AuthService {
@@ -26,8 +27,9 @@ export class AuthService {
             user.firstname,
             user.lastname
         );
+
         await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
-        this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken);
+        this.cookieService.setAuthTokensCookies(response, tokens.accessToken);
 
         const { password, ...userWithoutPassword } = user;
         return {
@@ -41,6 +43,7 @@ export class AuthService {
         response: Response
     ): Promise<AuthResponse> {
         const user = await this.userAccountService.signupOrLoginWithGoogle(googleUser);
+
         const tokens = await this.tokenService.generateTokens(
             user.id,
             user.email,
@@ -48,8 +51,9 @@ export class AuthService {
             user.firstname,
             user.lastname
         );
+
         await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
-        this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken);
+        this.cookieService.setAuthTokensCookies(response, tokens.accessToken);
 
         const { password, ...userWithoutPassword } = user;
         return {
@@ -70,7 +74,7 @@ export class AuthService {
         );
 
         await this.tokenService.saveRefreshToken(user.id, tokens.refreshToken);
-        this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken);
+        this.cookieService.setAuthTokensCookies(response, tokens.refreshToken);
 
         const { password, ...userWithoutPassword } = user;
         return {
@@ -79,10 +83,7 @@ export class AuthService {
         };
     }
 
-    async refreshAccessToken(
-        request: Request,
-        response: Response
-    ): Promise<{ accessToken: string }> {
+    async refreshAccessToken(request: Request, response: Response): Promise<RefreshTokenResponse> {
         const refreshToken = request.cookies['refreshToken'];
 
         if (!refreshToken) {
@@ -106,8 +107,12 @@ export class AuthService {
             await this.tokenService.revokeRefreshTokenById(storedToken.id);
             await this.tokenService.saveRefreshToken(payload.sub, newTokens.refreshToken);
             this.cookieService.setRefreshTokenCookie(response, newTokens.refreshToken);
+            const user = await this.userAccountService.findById(payload.sub);
 
-            return { accessToken: newTokens.accessToken };
+            return {
+                accessToken: newTokens.accessToken,
+                user: user,
+            };
         } else {
             const newAccessToken = await this.tokenService.generateAccessToken(
                 payload.sub,
@@ -118,7 +123,12 @@ export class AuthService {
                 payload.avatar
             );
 
-            return { accessToken: newAccessToken };
+            const user = await this.userAccountService.findById(payload.sub);
+
+            return {
+                accessToken: newAccessToken,
+                user: user,
+            };
         }
     }
 
@@ -129,14 +139,15 @@ export class AuthService {
             await this.tokenService.revokeRefreshToken(refreshToken);
         }
 
-        this.cookieService.clearRefreshTokenCookie(response);
+        this.cookieService.clearAuthCookies(response);
 
         return { message: 'Logged out successfully' };
     }
 
     async logoutAll(userId: string, response: Response): Promise<{ message: string }> {
         await this.tokenService.revokeAllUserTokens(userId);
-        this.cookieService.clearRefreshTokenCookie(response);
+
+        this.cookieService.clearAuthCookies(response);
 
         return { message: 'Logged out from all devices successfully' };
     }

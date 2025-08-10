@@ -6,6 +6,20 @@ import { Response } from 'express';
 export class CookieService {
     constructor(private config: ConfigService) {}
 
+    setAuthTokensCookies(response: Response, refreshToken: string): void {
+        const isProduction = this.config.get<string>('NODE_ENV') === 'production';
+
+        const refreshTokenOptions = {
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: isProduction ? ('none' as const) : ('lax' as const),
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            path: '/',
+        };
+
+        response.cookie('refreshToken', refreshToken, refreshTokenOptions);
+    }
+
     setRefreshTokenCookie(response: Response, refreshToken: string): void {
         const isProduction = this.config.get<string>('NODE_ENV') === 'production';
 
@@ -18,12 +32,18 @@ export class CookieService {
         };
 
         response.cookie('refreshToken', refreshToken, cookieOptions);
+    }
 
-        setTimeout(() => {
-            console.log('🔍 Response headers after cookie set:', {
-                setCookie: response.getHeaders()['set-cookie'],
-            });
-        }, 0);
+    clearAuthCookies(response: Response): void {
+        const isProduction = this.config.get<string>('NODE_ENV') === 'production';
+
+        const cookieOptions = {
+            path: '/',
+            secure: isProduction,
+            sameSite: isProduction ? ('none' as const) : ('lax' as const),
+        };
+
+        response.clearCookie('refreshToken', { ...cookieOptions, httpOnly: true });
     }
 
     clearRefreshTokenCookie(response: Response): void {
@@ -38,5 +58,4 @@ export class CookieService {
 
         response.clearCookie('refreshToken', cookieOptions);
     }
- 
 }
