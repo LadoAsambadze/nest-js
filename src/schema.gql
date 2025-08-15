@@ -20,13 +20,17 @@ type Mutation {
   cleanupTokens: MessageOutput!
   logout: MessageOutput!
   refreshToken: RefreshTokenResponse!
+  resendVerificationEmail(email: String!): String!
+  sendUpdatePasswordEmail(email: String!): String!
   signin(signinInput: SigninRequest!): AuthResponse!
-  signup(signupInput: SignupRequest!): AuthResponse!
+  signup(signupInput: SignupRequest!): SignupResponse!
+  updatePassword(data: UpdatePasswordInput!): UpdatePasswordResponse!
 }
 
 type Query {
   hello: String!
   me: User!
+  verifyEmail(token: String!): String!
 }
 
 type RefreshTokenResponse {
@@ -46,6 +50,22 @@ input SignupRequest {
   lastname: String!
   password: String!
   phone: String
+}
+
+type SignupResponse {
+  email: String
+  message: String!
+  success: Boolean!
+  userId: String
+}
+
+input UpdatePasswordInput {
+  password: String!
+  token: String!
+}
+
+type UpdatePasswordResponse {
+  message: String!
 }
 
 type User {

@@ -11,6 +11,7 @@ import { TokenService } from './services/token.service';
 import { CookieService } from './services/cookie.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ScheduledTasksService } from './services/sheduled-tasks.service';
+import { EmailService } from './services/email.service';
 
 @Module({
     imports: [
@@ -36,6 +37,7 @@ import { ScheduledTasksService } from './services/sheduled-tasks.service';
         TokenService,
         CookieService,
         ScheduledTasksService,
+        EmailService,
     ],
     exports: [AuthService],
 })

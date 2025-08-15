@@ -8,15 +8,24 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { hash, verify } from 'argon2';
 import { SignupRequest } from '../dto/signup.dto';
-import { GoogleUserData } from '../types/google-user.types';
 import { User } from '../types/user.type';
+import * as crypto from 'crypto';
+import { EmailService } from './email.service';
+import { UpdatePasswordInput } from '../dto/update-password.dto';
+import { GoogleRequest } from '../types/google-request.type';
 
 @Injectable()
 export class UserAccountService {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private emailService: EmailService
+    ) {}
 
     async createUserWithCredentials(dto: SignupRequest) {
         const { firstname, lastname, email, avatar, password, phone } = dto;
+
+        const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+        const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         const existingUser = await this.prisma.user.findUnique({
             where: { email },
@@ -45,15 +54,98 @@ export class UserAccountService {
                 avatar,
                 phone,
                 method: 'CREDENTIALS',
+                emailVerificationToken: emailVerificationToken,
+                emailVerificationExpires: emailVerificationExpires,
             },
         });
 
-        return user;
+        try {
+            await this.emailService.sendVerificationEmail(
+                user.email,
+                user.firstname,
+                emailVerificationToken
+            );
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+        }
+
+        const { password: _, emailVerificationToken: __, ...userWithoutSensitiveData } = user;
+        return userWithoutSensitiveData;
     }
 
-    async signupOrLoginWithGoogle(googleUser: GoogleUserData) {
-        const { email, firstname, lastname, avatar, googleId, accessToken, refreshToken } =
-            googleUser;
+    async verifyEmail(token: string) {
+        const user = await this.prisma.user.findFirst({
+            where: {
+                emailVerificationToken: token,
+                emailVerificationExpires: {
+                    gt: new Date(),
+                },
+                isVerified: false,
+            },
+        });
+
+        if (!user) {
+            throw new BadRequestException('Invalid or expired verification token');
+        }
+
+        const updatedUser = await this.prisma.user.update({
+            where: {
+                id: user.id,
+            },
+            data: {
+                isVerified: true,
+                emailVerificationToken: null,
+                emailVerificationExpires: null,
+            },
+        });
+
+        return {
+            message: 'Email verified successfully',
+            user: {
+                id: updatedUser.id,
+                email: updatedUser.email,
+                isVerified: updatedUser.isVerified,
+            },
+        };
+    }
+
+    async resendVerificationEmail(email: string) {
+        const user = await this.prisma.user.findUnique({
+            where: {
+                email,
+            },
+        });
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        if (user.isVerified) {
+            throw new BadRequestException('Email is already verified');
+        }
+
+        const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+        const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                emailVerificationToken: emailVerificationToken,
+                emailVerificationExpires: emailVerificationExpires,
+            },
+        });
+
+        await this.emailService.sendVerificationEmail(
+            user.email,
+            user.firstname,
+            emailVerificationToken
+        );
+
+        return { message: 'Verification email sent successfully' };
+    }
+
+    async signupOrLoginWithGoogle(req: GoogleRequest) {
+        const { email, firstname, lastname, avatar, googleId } = req.user;
 
         let user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -65,39 +157,39 @@ export class UserAccountService {
                         method: 'BOTH',
                         lastLogin: new Date(),
                         avatar: avatar || user.avatar,
-                    },
-                });
-
-                await this.prisma.account.upsert({
-                    where: {
-                        provider_providerAccountId: {
-                            provider: 'google',
-                            providerAccountId: googleId,
-                        },
-                    },
-                    create: {
-                        userId: user.id,
-                        type: 'oauth',
-                        provider: 'google',
-                        providerAccountId: googleId,
-                        accessToken,
-                        refreshToken,
-                        expiresAt: Math.floor(Date.now() / 1000) + 3600,
-                        tokenType: 'Bearer',
-                        scope: 'email profile',
-                    },
-                    update: {
-                        accessToken,
-                        refreshToken,
-                        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+                        isVerified: true,
                     },
                 });
             } else {
                 user = await this.prisma.user.update({
                     where: { id: user.id },
-                    data: { lastLogin: new Date() },
+                    data: {
+                        lastLogin: new Date(),
+                        avatar: avatar || user.avatar,
+                    },
                 });
             }
+
+            await this.prisma.account.upsert({
+                where: {
+                    provider_providerAccountId: {
+                        provider: 'google',
+                        providerAccountId: googleId,
+                    },
+                },
+                create: {
+                    userId: user.id,
+                    type: 'oauth',
+                    provider: 'google',
+                    providerAccountId: googleId,
+                    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+                    tokenType: 'Bearer',
+                    scope: 'email profile',
+                },
+                update: {
+                    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+                },
+            });
         } else {
             user = await this.prisma.user.create({
                 data: {
@@ -117,6 +209,9 @@ export class UserAccountService {
                     type: 'oauth',
                     provider: 'google',
                     providerAccountId: googleId,
+                    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+                    tokenType: 'Bearer',
+                    scope: 'email profile',
                 },
             });
         }
@@ -137,6 +232,10 @@ export class UserAccountService {
             );
         }
 
+        if (!user.isVerified) {
+            throw new UnauthorizedException('User is not verified, please check you email');
+        }
+
         const isValid = await verify(user.password, password);
 
         if (!isValid) {
@@ -149,10 +248,6 @@ export class UserAccountService {
         });
     }
 
-    /**
-     * Find user by ID for authentication purposes
-     * Returns user data without sensitive information like password
-     */
     async findById(userId: string): Promise<User> {
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -163,14 +258,13 @@ export class UserAccountService {
                 email: true,
                 role: true,
                 isVerified: true,
-                isActive: true, // Make sure this field is included
+                isActive: true,
                 avatar: true,
                 phone: true,
                 lastLogin: true,
                 createdAt: true,
                 updatedAt: true,
                 method: true,
-                // Explicitly exclude password
                 password: false,
             },
         });
@@ -182,10 +276,6 @@ export class UserAccountService {
         return user as User;
     }
 
-    /**
-     * Find user by email
-     * Returns user data without sensitive information like password
-     */
     async findByEmail(email: string) {
         return await this.prisma.user.findUnique({
             where: { email },
@@ -206,9 +296,6 @@ export class UserAccountService {
         });
     }
 
-    /**
-     * Update user's last login timestamp
-     */
     async updateLastLogin(userId: string) {
         return await this.prisma.user.update({
             where: { id: userId },
@@ -228,5 +315,59 @@ export class UserAccountService {
                 updatedAt: true,
             },
         });
+    }
+
+    async sendUpdatePasswordEmail(email: string) {
+        const user = await this.prisma.user.findUnique({ where: { email } });
+
+        const TOKEN_EXPIRATION_MINUTES = 60;
+
+        if (!user) {
+            throw new UnauthorizedException('User not found');
+        }
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + TOKEN_EXPIRATION_MINUTES * 60 * 1000);
+
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                resetPasswordToken: token,
+                resetPasswordTokenExpires: expiresAt,
+            },
+        });
+
+        try {
+            await this.emailService.sendUpdatePasswordEmail(email, token);
+        } catch (error) {
+            console.error('Failed to send update password email:', error);
+            throw error;
+        }
+
+        return 'Update password link on  email sent successfully';
+    }
+
+    async updatePassword(dto: UpdatePasswordInput) {
+        const user = await this.prisma.user.findFirst({
+            where: {
+                resetPasswordToken: dto.token,
+            },
+        });
+
+        if (!user) {
+            throw new UnauthorizedException('User with this token not found');
+        }
+
+        const hashedPassword = await hash(dto.password);
+        await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetPasswordToken: null,
+                resetPasswordTokenExpires: null,
+            },
+        });
+
+        return 'Update password ';
     }
 }

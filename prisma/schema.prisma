@@ -16,6 +16,10 @@ model User {
   role       UserRole  @default(REGULAR)
   method     AuthMethod @default(CREDENTIALS)
   isVerified Boolean   @default(false) @map("is_verified")
+  emailVerificationToken String? @map("email_verification_token")
+  emailVerificationExpires DateTime? @map("email_verification_expires")
+  resetPasswordToken String? @map("reset_password_token")
+  resetPasswordTokenExpires DateTime?  @map("reset_password_token_expires")
   isActive   Boolean   @default(true) @map("is_active")
   avatar     String?
   phone      String?
